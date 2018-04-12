@@ -9,11 +9,13 @@
 import UIKit
 
 class PageVC: UIPageViewController {
-    var locationsArray = ["Local City Weather",
-                          "Chestnut Hill, MA",
-                          "Sydney, Australlia",
-                          "Acra, Ghana",
-                          "Uglich, Russia"]
+    
+    var locationsArray = [WeatherLocation]()
+//    var locationsArray = ["Local City Weather",
+//                          "Chestnut Hill, MA",
+//                          "Sydney, Australlia",
+//                          "Acra, Ghana",
+//                          "Uglich, Russia"]
     var currentPage: Int = 0
     var pageControl: UIPageControl!
     var listButton: UIButton!
@@ -25,6 +27,10 @@ class PageVC: UIPageViewController {
         delegate = self
         dataSource = self
         
+        let newLocation = WeatherLocation(name: "", coordinates: "")
+        locationsArray.append(newLocation)
+        loadLocations()
+        
         setViewControllers([createDetailVC(forPage: 0)], direction: .forward, animated: false, completion: nil)
     }
     
@@ -33,6 +39,20 @@ class PageVC: UIPageViewController {
         configurePageControl()
         configureListButton()
     }
+    
+    func loadLocations() {
+        guard let locationsEncoded = UserDefaults.standard.value(forKey: "locationsArray") as? Data else {
+            print("Could not load locationsArray data from UserDefaults.")
+            return
+        }
+        let decoder = JSONDecoder()
+        if let locationsArray = try? decoder.decode(Array.self, from: locationsEncoded) as [WeatherLocation] {
+            self.locationsArray = locationsArray
+        } else {
+            print("ERROR: Couldn't decode data read from UserDefaults.")
+        }
+    }
+    
     //MARK:- UI Configuration Mehods
     func configurePageControl(){
         let pageControlHeight: CGFloat = barButtonHeight
@@ -43,6 +63,7 @@ class PageVC: UIPageViewController {
         pageControl = UIPageControl(frame: CGRect(x: (view.frame.width - pageControlWidth) / 2, y: safeHeight - pageControlHeight, width: pageControlWidth, height: pageControlHeight))
         pageControl.pageIndicatorTintColor = UIColor.lightGray
         pageControl.currentPageIndicatorTintColor = UIColor.black
+        pageControl.backgroundColor = UIColor.white
         pageControl.numberOfPages = locationsArray.count
         pageControl.currentPage = currentPage
         pageControl.isUserInteractionEnabled = true
@@ -67,6 +88,8 @@ class PageVC: UIPageViewController {
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        guard let currentViewController = self.viewControllers?[0] as? DetailVC else {return}
+        locationsArray = currentViewController.locationsArray
         if segue.identifier == "ToListVC" {
             let destination = segue.destination as! ListVC
             destination.locationsArray = locationsArray
